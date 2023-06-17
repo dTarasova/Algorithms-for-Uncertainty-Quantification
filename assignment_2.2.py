@@ -24,5 +24,5 @@ if __name__ == '__main__':
                 expect_norm[j, k] = cp.E(orth_poly_norm[j] * orth_poly_norm[k], norm_distr)
 
         # print result for specific n
-        print("n = ", n, "Uniform expect = \n", expect_unif)
-        print("n = ", n, "Uniform expect = \n", expect_norm)
+        print("n = ", n, "Uniform expectation = \n", expect_unif)
+        print("n = ", n, "Normal expectation = \n", expect_norm)
