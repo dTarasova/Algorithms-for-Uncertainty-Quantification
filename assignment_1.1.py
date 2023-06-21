@@ -58,6 +58,13 @@ def discretize_oscillator_odeint(model, atol, rtol, init_cond, args, t, t_intere
 
 	return sol[t_interest, 0]
 
+
+def create_chebyshev_grid(a, b, N):
+    cheb_points = np.cos(np.pi * (np.arange(N) + 0.5) / N)
+    grid = (a + b) / 2 + (b - a) / 2 * cheb_points
+
+    return grid
+
 if __name__ == '__main__':
     # relative and absolute tolerances for the ode int solver
     atol = 1e-10
@@ -71,15 +78,16 @@ if __name__ == '__main__':
     y1  = 0.
 
     # w is no longer deterministic
-    w_left      = None
-    w_right     = None
+    w_left      = 0.95
+    w_right     = 1.05
     stat_ref    = [-0.43893703, 0.00019678]
 
     # create uniform distribution object
+    distr = cp.Uniform(w_left, w_right)
 
     # no of samples from Monte Carlo sampling
-    no_samples_vec = None
-    no_grid_points_vec = None
+    no_samples_vec = [10, 100, 1000, 10000]
+    no_grid_points_vec = [2, 5, 10, 20]
 
     # time domain setup
     t_max       = 10.
@@ -92,14 +100,26 @@ if __name__ == '__main__':
     init_cond   = y0, y1
 
     # create vectors to contain the expectations and variances and runtimes
+    N = len(no_grid_points_vec)
+    exp = np.zeros(N)
+    var = np.zeros(N)
+    func_eval = np.zeros(N)
+
 
     # compute relative error
     relative_err = lambda approx, real: abs(1. - approx/real)
 
     # perform Monte Carlo sampling
+    integral_sum = 0
     for j, no_grid_points in enumerate(no_grid_points_vec):
-        pass
         # a) Create the interpolant and evaluate the integral on the lagrange interpolant using MC
+        grid = create_chebyshev_grid(w_left, w_right, no_grid_points)
+        weights = compute_barycentric_weights(grid)
+        random_point = np.random.uniform(w_left, w_right, no_grid_points)
+        integrand_values = barycentric_interp(random_point, grid, weights, func_eval)
+        integral_sum += np.mean(integrand_values)
+
+        integral_estimate = (domain_volume / N) * integral_sum
         # b) Evaluate the integral directly using MC
         # c) compute expectation and variance and measure runtime
 
