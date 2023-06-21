@@ -63,6 +63,12 @@ if __name__ == '__main__':
     exp_cp = np.zeros(len(N))
     var_cp = np.zeros(len(N))
 
+    exp_mc = np.zeros(len(N))
+    var_mc = np.zeros(len(N))
+
+    exp_error = np.zeros(len(N))
+    var_error = np.zeros(len(N))
+
     # perform polynomial chaos approximation + the pseudo-spectral
     for h in range(len(N)):
 
@@ -94,15 +100,32 @@ if __name__ == '__main__':
         gPC_M_cp, gPC_coef_cp = cp.fit_quadrature(poly, nodes, weights, M_eval, retall=True)
         exp_cp[h] = cp.E(gPC_M_cp, distr_w)
         var_cp[h] = cp.Var(gPC_M_cp, distr_w)
+
+        #Monte-Carlo
+        samples = distr_w.sample(num_nodes)
+        sol_mc = np.zeros(num_nodes)
+
+        for j, w in enumerate(samples):
+            params_odeint = c, k, f, w
+            sol_mc[j] = discretize_oscillator_odeint(model, atol, rtol, init_cond, params_odeint, t, t_interest)
+
+        exp_mc[h] = np.mean(sol_mc)
+        var_mc[h] = np.var(sol_mc, ddof=1)
+
+        exp_error[h] = abs(exp_cp[h] - exp_mc[h]) / exp_cp[h]
+        var_error[h] = abs(var_cp[h] - var_mc[h]) / var_cp[h]
         
     
     print('MEAN')
-    print("K | N | Manual \t\t\t| ChaosPy")
+    print("K | N | Manual \t\t\t| ChaosPy \t\t\t| Monte-Carlo \t\t\t| Relative error")
     for h in range(len(N)):
-        print(K[h], '|', N[h], '|', "{a:1.12f}".format(a=exp_m[h]), '\t|', "{a:1.12f}".format(a=exp_cp[h]))
+        print(K[h], '|', N[h], '|', "{a:1.12f}".format(a=exp_m[h]), '\t|', "{a:1.12f}".format(a=exp_cp[h]),
+              '\t|', "{a:1.12f}".format(a=exp_mc[h]), '\t|', "{a:1.12f}".format(a=exp_error[h]))
 
     print('VARIANCE')
-    print("K | N | Manual \t\t| ChaosPy")
+    print("K | N | Manual \t\t| ChaosPy \t\t\t| Monte-Carlo \t\t\t| Relative error")
     for h in range(len(N)):
-        print(K[h], '|', N[h], '|', "{a:1.12f}".format(a=var_m[h]), '\t|', "{a:1.12f}".format(a=var_cp[h]))
+        print(K[h], '|', N[h], '|', "{a:1.12f}".format(a=var_m[h]), '\t|', "{a:1.12f}".format(a=var_cp[h]),
+              '\t|', "{a:1.12f}".format(a=var_mc[h]), '\t|', "{a:1.12f}".format(a=var_error[h]))
+
 
