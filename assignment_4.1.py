@@ -49,7 +49,7 @@ if __name__ == '__main__':
     w_right     = 1.05
 
     # create uniform distribution object
-    distr_w = cp.Uniform(-1, 1)
+    distr_w = cp.Uniform(w_left, w_right)
 
     # the truncation order of the polynomial chaos expansion approximation
     N = [1, 2, 3, 4, 5, 6]
@@ -112,8 +112,8 @@ if __name__ == '__main__':
         exp_mc[h] = np.mean(sol_mc)
         var_mc[h] = np.var(sol_mc, ddof=1)
 
-        exp_error[h] = abs(exp_cp[h] - exp_mc[h]) / exp_cp[h]
-        var_error[h] = abs(var_cp[h] - var_mc[h]) / var_cp[h]
+        exp_error[h] = abs(exp_cp[h] - exp_m[h]) / exp_cp[h]
+        var_error[h] = abs(var_cp[h] - var_m[h]) / var_cp[h]
         
     
     print('MEAN')
@@ -123,7 +123,7 @@ if __name__ == '__main__':
               '\t|', "{a:1.12f}".format(a=exp_mc[h]), '\t|', "{a:1.12f}".format(a=exp_error[h]))
 
     print('VARIANCE')
-    print("K | N | Manual \t\t| ChaosPy \t\t\t| Monte-Carlo \t\t\t| Relative error")
+    print("K | N | Manual \t\t\t| ChaosPy \t\t\t| Monte-Carlo \t\t| Relative error")
     for h in range(len(N)):
         print(K[h], '|', N[h], '|', "{a:1.12f}".format(a=var_m[h]), '\t|', "{a:1.12f}".format(a=var_cp[h]),
               '\t|', "{a:1.12f}".format(a=var_mc[h]), '\t|', "{a:1.12f}".format(a=var_error[h]))
