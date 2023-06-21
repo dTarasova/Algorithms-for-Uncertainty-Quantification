@@ -17,7 +17,7 @@ def model(w, t, p):
 def discretize_oscillator_odeint(model, atol, rtol, init_cond, args, t, t_interest):
 	sol = odeint(model, init_cond, t, args=(args,), atol=atol, rtol=rtol)
 
-	return sol[t_interest, 0]
+	return sol[int(t_interest), 0]
 
 if __name__ == '__main__':
     ### deterministic setup ###
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     w_right     = 1.05
 
     # create uniform distribution object
-    distr_w = None
+    distr_w = cp.Uniform(-1, 1)
 
     # the truncation order of the polynomial chaos expansion approximation
     N = [1, 2, 3, 4, 5, 6]
@@ -64,16 +64,36 @@ if __name__ == '__main__':
     var_cp = np.zeros(len(N))
 
     # perform polynomial chaos approximation + the pseudo-spectral
-    for h in xrange(len(N)):
+    for h in range(len(N)):
 
         # create N[h] orthogonal polynomials using chaospy
-        poly            = None
+        poly            = cp.generate_expansion(N[h], distr_w, normed=True)
+
         # create K[h] quadrature nodes using chaospy
-        nodes, weights  = None
+        nodes, weights  = cp.generate_quadrature(K[h], distr_w, rule='G')
 
         # perform polynomial chaos approximation + the pseudo-spectral approach manually
 
+        num_nodes = len(nodes[0])
+        M_eval = np.zeros(num_nodes)
+        for k_idx, w in enumerate(nodes[0]):
+            # w is now a quadrature node
+            params_odeint = c, k, f, w
+            M_eval[k_idx] = discretize_oscillator_odeint(model, atol, rtol, init_cond, params_odeint, t, t_interest)
+
+        num_polynoms = len(poly)
+        gpc_coef_m = np.zeros(num_polynoms)
+
+        for i in range(num_polynoms):
+            for j in range(num_nodes):
+                gpc_coef_m[i] += M_eval[j] * poly[i](nodes[0, j]) * weights[j]
+        exp_m[h] = gpc_coef_m[0]
+        var_m[h] = np.sum([gpc_coef_m[m] ** 2 for m in range(1, num_polynoms)])
+
         # perform polynomial chaos approximation + the pseudo-spectral approach using chaospy
+        gPC_M_cp, gPC_coef_cp = cp.fit_quadrature(poly, nodes, weights, M_eval, retall=True)
+        exp_cp[h] = cp.E(gPC_M_cp, distr_w)
+        var_cp[h] = cp.Var(gPC_M_cp, distr_w)
         
     
     print('MEAN')
